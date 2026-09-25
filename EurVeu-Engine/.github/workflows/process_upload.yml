@@ -1,9 +1,12 @@
-name: EurVeu Automatic Ingestion
+name: EurVeu Automatic Ingestion & Render
 
 on:
+  repository_dispatch:
+    types: [start_eurveu_render] # รองรับคำสั่งกดปุ่มสร้างวิดีโอจากหน้าเว็บ
+  workflow_dispatch:              # กดรันมือเองบน GitHub Actions
   push:
     paths:
-      - 'inputs/**' # ทำงานทันทีเมื่อมีไฟล์ใหม่ในโฟลเดอร์ inputs
+      - 'inputs/**'               # รันอัตโนมัติเมื่อมีไฟล์ใหม่ถูก push เข้า inputs/
 
 permissions:
   contents: write
