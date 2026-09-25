@@ -1,0 +1,9 @@
+# Temporary Files
+temp_audio.wav
+temp_video.mp4
+*.mp4
+*.wav
+
+# Python Bytecode
+__pycache__/
+*.pyc
