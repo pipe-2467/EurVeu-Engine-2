@@ -1,0 +1,44 @@
+name: EurVeu Automatic Ingestion
+
+on:
+  push:
+    paths:
+      - 'inputs/**' # ทำงานทันทีเมื่อมีไฟล์ใหม่ในโฟลเดอร์ inputs
+
+permissions:
+  contents: write
+
+jobs:
+  process_and_render:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies & FFmpeg
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install numpy soundfile imageio imageio-ffmpeg scipy pillow
+
+      - name: Trigger EurVeu Brain & Render Pipeline
+        run: python eurveu_core.py
+
+      - name: Commit Evolution Memory Update
+        run: |
+          git config --global user.name "EurVeu-Brain"
+          git config --global user.email "eurveu@local.engine"
+          git add eurveu_memory.json
+          git commit -m "[EurVeu Evolution] Processed new input media" || echo "No changes"
+          git push
+
+      - name: Upload Farland Video Result
+        uses: actions/upload-artifact@v4
+        with:
+          name: eurveu-farland-video
+          path: eurveu_farland_output.mp4
