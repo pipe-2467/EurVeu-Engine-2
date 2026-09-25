@@ -1,0 +1,31 @@
+name: EurVeu Render Engine
+
+on:
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies & FFmpeg
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install numpy soundfile imageio imageio-ffmpeg scipy
+
+      - name: Run EurVeu Engine
+        run: python eurveu_core.py
+
+      - name: Upload Farland Video
+        uses: actions/upload-artifact@v4
+        with:
+          name: eurveu-farland-video
+          path: eurveu_farland_output.mp4
