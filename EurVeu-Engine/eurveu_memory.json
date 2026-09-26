@@ -1,12 +1,21 @@
 {
-    "generation": 0,
+    "generation": 1,
     "curiosity_index": 1.0,
-    "processed_files_hash": [],
+    "processed_files_hash": [
+        6117526333531661151,
+        1255919030354849504,
+        -9011352841770699185,
+        -6262824825817036542,
+        -89004623921451318,
+        2345916549005366233,
+        5679546697140045587,
+        2158734985584044543
+    ],
     "visual_entropy_history": [],
     "learned_vectors": {
-        "r_freq": 12.0,
-        "g_freq": 14.0,
-        "b_freq": 25.0,
+        "r_freq": 16.0,
+        "g_freq": 20.4,
+        "b_freq": 33.0,
         "audio_density": 20000
     }
 }
