@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # ดึงประวัติ Commit ทั้งหมดเพื่อป้องกัน Push Conflict
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -34,13 +36,20 @@ jobs:
           cd EurVeu-Engine
           python eurveu_core.py
 
-      - name: Commit Evolution Memory Update
+      - name: Commit & Push Evolution Memory Update
         run: |
           git config --global user.name "EurVeu-Brain"
           git config --global user.email "eurveu@local.engine"
           git add EurVeu-Engine/eurveu_memory.json
-          git commit -m "[EurVeu Evolution] Processed new input media" || echo "No changes"
-          git push
+          
+          # ตรวจสอบว่ามีความเปลี่ยนแปลงใน memory หรือไม่
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "[EurVeu Evolution] Processed new input media"
+            git pull --rebase origin main  # 🎯 ดึงข้อมูลล่าสุดมาก่อน Push ป้องกัน Conflict
+            git push origin main
+          else
+            echo "No changes in memory to commit."
+          fi
 
       - name: Upload Farland Video Result
         uses: actions/upload-artifact@v4
