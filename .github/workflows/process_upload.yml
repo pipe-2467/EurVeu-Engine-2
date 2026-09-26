@@ -19,7 +19,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # ดึงประวัติ Commit ทั้งหมดเพื่อป้องกัน Push Conflict
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,28 +31,38 @@ jobs:
           sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install numpy soundfile imageio imageio-ffmpeg scipy pillow
 
+      # 🧹 ขั้นตอนใหม่: ลบไฟล์วิดีโอเก่าทิ้งก่อนเริ่มสร้าง
+      - name: Clean Old Output
+        run: |
+          rm -f EurVeu-Engine/eurveu_farland_output.mp4
+
       - name: Trigger EurVeu Brain & Render Pipeline
         run: |
           cd EurVeu-Engine
           python eurveu_core.py
 
-      - name: Commit & Push Evolution Memory Update
+      # 🧹 ขั้นตอนใหม่: ลบไฟล์ใน inputs หลังประมวลผลเสร็จ เพื่อไม่ให้ไฟล์เก่าตกค้าง
+      - name: Commit & Clean Processed Inputs
         run: |
           git config --global user.name "EurVeu-Brain"
           git config --global user.email "eurveu@local.engine"
-          git add EurVeu-Engine/eurveu_memory.json
           
-          # ตรวจสอบว่ามีความเปลี่ยนแปลงใน memory หรือไม่
+          # ลบไฟล์ภาพ/วิดีโอใน inputs เพื่อเตรียมรับไฟล์ถัดไป (เว้น .gitkeep ไว้)
+          find EurVeu-Engine/inputs/ -type f ! -name '.gitkeep' -delete
+          
+          git add EurVeu-Engine/eurveu_memory.json EurVeu-Engine/inputs/
+          
           if ! git diff-index --quiet HEAD; then
-            git commit -m "[EurVeu Evolution] Processed new input media"
-            git pull --rebase origin main  # 🎯 ดึงข้อมูลล่าสุดมาก่อน Push ป้องกัน Conflict
+            git commit -m "[EurVeu System] Rendered video & cleaned inputs"
+            git pull --rebase origin main
             git push origin main
           else
-            echo "No changes in memory to commit."
+            echo "No changes to commit."
           fi
 
       - name: Upload Farland Video Result
         uses: actions/upload-artifact@v4
         with:
-          name: eurveu-farland-video
+          name: eurveu-farland-video-${{ github.run_id }}  # 🎯 ตั้งชื่อ Artifact ตาม ID รอบเพื่อไม่ให้ซ้ำกัน
           path: EurVeu-Engine/eurveu_farland_output.mp4
+          retention-days: 1
