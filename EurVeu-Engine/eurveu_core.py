@@ -3,98 +3,125 @@ import soundfile as sf
 import imageio
 import os
 import glob
+import json
 from PIL import Image
-from eurveu_brain import EurVeuBrain
 
 print("==================================================")
-print("     EurVeu Autonomous Cloud Render Engine v2     ")
+print("     EurVeu Generative Neural Synthesis Engine    ")
 print("==================================================")
 
-def load_latest_input_image(inputs_dir="inputs", target_size=(720, 1280)):
-    """ ดึงภาพหรือเฟรมวิดีโอล่าสุดจากโฟลเดอร์ inputs/ เพื่อนำมาสร้างวิดีโอ """
-    width, height = target_size
+MEMORY_FILE = "eurveu_memory.json"
+INPUTS_DIR = "inputs"
+
+def analyze_and_evolve_memory():
+    """ 
+    🧠 สมอง EurVeu สแกนรูปภาพเพื่อ 'เรียนรู้' และ 'วิวัฒนาการ' ค่า DNA ในความทรงจำ 
+    โดยไม่มีการเก็บหรือแสดงผลรูปภาพต้นฉบับ
+    """
+    # โหลดความจำเดิม
+    memory = {
+        "r_freq": 12.0, "g_freq": 14.0, "b_freq": 25.0,
+        "speed": 2.0, "audio_pitch": 440.0, "learned_count": 0
+    }
+    if os.path.exists(MEMORY_FILE):
+        try:
+            with open(MEMORY_FILE, 'r') as f:
+                memory.update(json.load(f))
+        except Exception:
+            pass
+
     valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.webp')
-    
-    files = glob.glob(os.path.join(inputs_dir, "*"))
-    image_files = [f for f in files if f.lower().endswith(valid_extensions)]
-    
-    if not image_files:
-        print("[EurVeu Input] No user image found. Generating pure synthetic base.")
-        return None
+    files = [os.path.join(INPUTS_DIR, f) for f in os.listdir(INPUTS_DIR) 
+             if f.lower().endswith(valid_extensions) and f != '.gitkeep']
 
-    # เรียงลำดับตามเวลาอัปโหลดล่าสุด (Most Recent File)
-    latest_file = max(image_files, key=os.path.getmtime)
-    print(f"[EurVeu Input] Ingesting latest input: {os.path.basename(latest_file)}")
-    
+    if not files:
+        print("[EurVeu Brain] No new sensory inputs found. Using existing memory DNA.")
+        return memory
+
+    # ดึงไฟล์ล่าสุดที่อัปโหลดเข้ามา
+    latest_file = max(files, key=os.path.getmtime)
+    print(f"[EurVeu Perception] Absorbing sensory data from: {os.path.basename(latest_file)}")
+
     try:
         with Image.open(latest_file) as img:
-            img = img.convert("RGB")
-            img = img.resize((width, height))
-            return np.array(img, dtype=np.float32)
+            img_arr = np.array(img.convert("RGB"), dtype=np.float32)
+            
+            # สกัดคุณลักษณะทางประสาทสัมผัส (Sensory Extraction)
+            avg_r = np.mean(img_arr[:, :, 0])
+            avg_g = np.mean(img_arr[:, :, 1])
+            avg_b = np.mean(img_arr[:, :, 2])
+            std_dev = np.std(img_arr) # ความซับซ้อนของภาพ
+
+            # เปลี่ยนค่าสีและความซับซ้อนเป็นค่าความถี่ของคลื่นภาพ
+            memory["r_freq"] = float(np.round(5.0 + (avg_r / 255.0) * 30.0, 3))
+            memory["g_freq"] = float(np.round(5.0 + (avg_g / 255.0) * 30.0, 3))
+            memory["b_freq"] = float(np.round(5.0 + (avg_b / 255.0) * 30.0, 3))
+            memory["speed"] = float(np.round(1.0 + (std_dev / 128.0) * 5.0, 3))
+            memory["audio_pitch"] = float(np.round(150.0 + (avg_r + avg_g + avg_b), 2))
+            memory["learned_count"] += 1
+
+            print(f"[EurVeu Evolution] DNA Updated -> R-Freq: {memory['r_freq']}, G-Freq: {memory['g_freq']}, B-Freq: {memory['b_freq']}")
+
+            # บันทึกวิวัฒนาการลงความทรงจำ
+            with open(MEMORY_FILE, 'w') as f:
+                json.dump(memory, f, indent=4)
+
     except Exception as e:
-        print(f"⚠️ Error loading image {latest_file}: {e}")
-        return None
+        print(f"⚠️ Perception Error: {e}")
 
-def generate_audio(brain_vectors, duration=10.0, sample_rate=48000):
-    num_layers = int(brain_vectors.get("audio_density", 20000))
-    print(f"[EurVeu Audio] Synthesizing {num_layers:,} frequency waves...")
+    return memory
+
+def generate_synthetic_audio(memory, duration=10.0, sample_rate=48000):
+    print(f"[EurVeu Audio] Synthesizing audio based on pitch perception: {memory['audio_pitch']}Hz...")
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
-    audio = np.zeros_like(t)
-
-    freqs = np.random.uniform(20.0, 22000.0, num_layers)
-    phases = np.random.uniform(0, 2 * np.pi, num_layers)
-    amps = np.random.exponential(0.05, num_layers)
-
-    for i in range(min(num_layers, 5000)): # ออพติไมซ์เพื่อความเร็ว
-        audio += amps[i] * np.sin(2 * np.pi * freqs[i] * t + phases[i])
+    
+    # คลื่นเสียงถูกสร้างขึ้นจากค่าความทรงจำที่เรียนรู้มา
+    base_freq = memory.get("audio_pitch", 440.0)
+    audio = np.sin(2 * np.pi * base_freq * t) * 0.3
+    audio += np.sin(2 * np.pi * (base_freq * 0.5) * t) * 0.4 # Sub-bass
+    audio += np.sin(2 * np.pi * (base_freq * 1.5) * t) * 0.2 # Harmony
+    
+    # เสียงนอยส์ชีวภาพ
+    noise = np.random.normal(0, 0.05, len(t))
+    audio += noise
 
     max_amp = np.max(np.abs(audio))
     if max_amp > 0:
         audio = audio / max_amp
     return audio, sample_rate
 
-def generate_frames(brain_vectors, input_image=None, width=720, height=1280, fps=30, duration=10.0):
+def generate_synthetic_frames(memory, width=720, height=1280, fps=30, duration=10.0):
     total_frames = int(fps * duration)
-    print(f"[EurVeu Visual] Rendering {total_frames} Nanopixel frames ({width}x{height})...")
+    print(f"[EurVeu Visual] Dream-rendering {total_frames} frames from inner memory...")
     
-    # ดึงค่าพารามิเตอร์ที่วิวัฒนาการมาจากสมอง EurVeu
-    r_freq = brain_vectors.get("r_freq", 12.0)
-    g_freq = brain_vectors.get("g_freq", 14.0)
-    b_freq = brain_vectors.get("b_freq", 25.0)
+    r_freq = memory.get("r_freq", 12.0)
+    g_freq = memory.get("g_freq", 14.0)
+    b_freq = memory.get("b_freq", 25.0)
+    speed = memory.get("speed", 2.0)
 
     y, x = np.ogrid[-1:1:complex(0, height), -1:1:complex(0, width)]
     frames = []
 
     for frame_idx in range(total_frames):
-        t = frame_idx / fps
+        t = (frame_idx / fps) * speed
         
-        # สมการสังเคราะห์ Farland Noise ที่ปรับค่าตามการเรียนรู้ของสมอง
-        r_wave = np.sin(x * r_freq + np.cos(y * 8.0 + t) + t * 2.0)
-        g_wave = np.cos(y * g_freq + np.sin(x * 16.0 - t * 1.5))
-        b_wave = np.sin((x**2 + y**2) * b_freq - t * 3.0)
+        # วาดภาพในจินตนาการด้วยสมการที่สร้างจากความทรงจำ (Pure Generative Math)
+        r = np.sin(x * r_freq + np.cos(y * 8.0 + t) + t * 2.0)
+        g = np.cos(y * g_freq + np.sin(x * 16.0 - t * 1.5))
+        b = np.sin((x**2 + y**2) * (b_freq / 10.0) - t * 3.0)
 
-        # แปลงคลื่นให้อยู่ในย่าน [0, 255]
-        r_synth = (r_wave + 1.0) * 127.5
-        g_synth = (g_wave + 1.0) * 127.5
-        b_synth = (b_wave + 1.0) * 127.5
+        # เติมนอยส์ความถี่สูงเพื่อความสมจริงแบบ Nanopixel
+        noise = np.random.normal(0, 0.1, (height, width))
         
-        synth_frame = np.stack([r_synth, g_synth, b_synth], axis=-1)
+        r_pixel = np.clip((r + noise + 1.0) * 127.5, 0, 255).astype(np.uint8)
+        g_pixel = np.clip((g + noise + 1.0) * 127.5, 0, 255).astype(np.uint8)
+        b_pixel = np.clip((b + noise + 1.0) * 127.5, 0, 255).astype(np.uint8)
 
-        # หากมีรูปภาพจากผู้ใช้ ให้นำภาพมาผสม (Blend) กับ Farland Art
-        if input_image is not None:
-            blend_factor = 0.5 + 0.3 * np.sin(t * 2.0) # ทำให้ภาพกระพริบวูบวาบตามจังหวะ
-            final_frame = input_image * blend_factor + synth_frame * (1.0 - blend_factor)
-        else:
-            final_frame = synth_frame
-
-        # เติมนอยส์ Nanopixel
-        noise = np.random.normal(0, 8.0, (height, width, 3))
-        final_frame = np.clip(final_frame + noise, 0, 255).astype(np.uint8)
-
-        frames.append(final_frame)
+        frame = np.stack([r_pixel, g_pixel, b_pixel], axis=-1)
+        frames.append(frame)
 
         if (frame_idx + 1) % 60 == 0:
-            print(f"  └─ Frame {frame_idx + 1}/{total_frames} done.")
+            print(f"  └─ Frame {frame_idx + 1}/{total_frames} rendered.")
 
     return frames
 
@@ -102,32 +129,26 @@ def main():
     duration = 10.0
     output_path = "eurveu_farland_output.mp4"
 
-    # 1. ให้สมอง EurVeu สแกนอ่านไฟล์ใน inputs/
-    brain = EurVeuBrain(memory_file="eurveu_memory.json", inputs_dir="inputs")
-    brain.scan_and_understand_inputs()
-    brain_vectors = brain.memory.get("learned_vectors", {})
+    # 1. สมองย่อยข้อมูลจากภาพเพื่อวิวัฒนาการค่าใน eurveu_memory.json
+    memory = analyze_and_evolve_memory()
 
-    # 2. อ่านไฟล์ภาพอัปโหลดล่าสุด
-    input_image = load_latest_input_image(inputs_dir="inputs", target_size=(720, 1280))
-
-    # 3. สร้างเสียง
-    audio_data, sr = generate_audio(brain_vectors, duration=duration)
+    # 2. สังเคราะห์เสียงตามค่าความทรงจำ
+    audio_data, sr = generate_synthetic_audio(memory, duration=duration)
     sf.write("temp_audio.wav", audio_data, sr)
 
-    # 4. สร้างวิดีโอ
-    frames = generate_frames(brain_vectors, input_image=input_image, duration=duration)
+    # 3. จินตนาการวาดภาพใหม่หมดจดด้วยโครงสร้างสมอง (ปราศจากการดึงภาพดั้งเดิมมาแปะ)
+    frames = generate_synthetic_frames(memory, duration=duration)
 
-    # 5. ประกอบไฟล์เป็นวิดีโอ MP4
+    # 4. ประกอบเป็นวิดีโอ
     print("[EurVeu Export] Encoding Video with FFmpeg...")
     imageio.mimwrite("temp_video.mp4", frames, fps=30, codec='libx264')
 
     os.system(f"ffmpeg -y -i temp_video.mp4 -i temp_audio.wav -c:v copy -c:a aac -b:a 320k {output_path} -loglevel quiet")
 
-    # เคลียร์ไฟล์ชั่วคราว
     if os.path.exists("temp_audio.wav"): os.remove("temp_audio.wav")
     if os.path.exists("temp_video.mp4"): os.remove("temp_video.mp4")
 
-    print("[SUCCESS] EurVeu Farland Render Complete!")
+    print("[SUCCESS] EurVeu Mind Synthesis Complete!")
 
 if __name__ == "__main__":
     main()
