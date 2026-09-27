@@ -43,29 +43,36 @@ jobs:
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install numpy soundfile imageio imageio-ffmpeg pillow
 
-      - name: Purge Legacy Artifacts
+      - name: Purge Legacy Artifacts & Ensure Input Directory Exists
         run: |
           rm -f EurVeu-Engine/eurveu_farland_output.mp4
+          mkdir -p EurVeu-Engine/inputs
+          touch EurVeu-Engine/inputs/.gitkeep
 
       - name: Execute EurVeu Neural Deep Engine Pipeline
         run: |
           cd EurVeu-Engine
           python eurveu_core.py
 
-      - name: Commit Memory Evolution & Clean Sensory Inputs
+      - name: Commit Memory Evolution & Clean Sensory Inputs safely
         run: |
           git config --global user.name "EurVeu-Neural-Brain"
           git config --global user.email "eurveu-brain@engine.local"
           
-          # Remove processed sensory inputs except tracking file
+          # ดึงข้อมูลล่าสุดโดยเน้นเอาเวอร์ชันบน Remote เป็นหลักเพื่อกัน Conflict
+          git fetch origin main
+          git reset --soft origin/main || true
+          
+          # ลบไฟล์ภาพอินพุตหลังจากประมวลผลเสร็จแล้ว แต่รักษาโฟลเดอร์และไฟล์ .gitkeep ไว้
+          mkdir -p EurVeu-Engine/inputs
           find EurVeu-Engine/inputs/ -type f ! -name '.gitkeep' -delete
+          touch EurVeu-Engine/inputs/.gitkeep
           
           git add EurVeu-Engine/eurveu_memory.json EurVeu-Engine/inputs/
           
           if ! git diff-index --quiet HEAD; then
             git commit -m "[EurVeu Neural Engine] Deep Render Completed & Experiential Memory Evolved"
-            git pull --rebase origin main
-            git push origin main
+            git push origin main --force-with-lease || (git pull origin main --rebase && git push origin main)
           else
             echo "No state changes to commit."
           fi
