@@ -1,4 +1,4 @@
-name: EurVeu Automatic Ingestion & Render
+name: EurVeu Automatic Ingestion & Neural Render
 
 on:
   repository_dispatch:
@@ -16,53 +16,63 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Code Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Python
+      - name: Set up Python Environment
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Dependencies & FFmpeg
+      - name: Cache PyTorch Dependencies & Neural Weights
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/torch
+          key: ${{ runner.os }}-pytorch-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pytorch-
+
+      - name: Install System FFmpeg & Deep Learning Libraries
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
-          pip install numpy soundfile imageio imageio-ffmpeg scipy pillow
+          python -m pip install --upgrade pip
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install numpy soundfile imageio imageio-ffmpeg pillow
 
-      # 🧹 ขั้นตอนใหม่: ลบไฟล์วิดีโอเก่าทิ้งก่อนเริ่มสร้าง
-      - name: Clean Old Output
+      - name: Purge Legacy Artifacts
         run: |
           rm -f EurVeu-Engine/eurveu_farland_output.mp4
 
-      - name: Trigger EurVeu Brain & Render Pipeline
+      - name: Execute EurVeu Neural Deep Engine Pipeline
         run: |
           cd EurVeu-Engine
           python eurveu_core.py
 
-      # 🧹 ขั้นตอนใหม่: ลบไฟล์ใน inputs หลังประมวลผลเสร็จ เพื่อไม่ให้ไฟล์เก่าตกค้าง
-      - name: Commit & Clean Processed Inputs
+      - name: Commit Memory Evolution & Clean Sensory Inputs
         run: |
-          git config --global user.name "EurVeu-Brain"
-          git config --global user.email "eurveu@local.engine"
+          git config --global user.name "EurVeu-Neural-Brain"
+          git config --global user.email "eurveu-brain@engine.local"
           
-          # ลบไฟล์ภาพ/วิดีโอใน inputs เพื่อเตรียมรับไฟล์ถัดไป (เว้น .gitkeep ไว้)
+          # Remove processed sensory inputs except tracking file
           find EurVeu-Engine/inputs/ -type f ! -name '.gitkeep' -delete
           
           git add EurVeu-Engine/eurveu_memory.json EurVeu-Engine/inputs/
           
           if ! git diff-index --quiet HEAD; then
-            git commit -m "[EurVeu System] Rendered video & cleaned inputs"
+            git commit -m "[EurVeu Neural Engine] Deep Render Completed & Experiential Memory Evolved"
             git pull --rebase origin main
             git push origin main
           else
-            echo "No changes to commit."
+            echo "No state changes to commit."
           fi
 
-      - name: Upload Farland Video Result
+      - name: Upload High-Bitrate Farland Video Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: eurveu-farland-video-${{ github.run_id }}  # 🎯 ตั้งชื่อ Artifact ตาม ID รอบเพื่อไม่ให้ซ้ำกัน
+          name: eurveu-farland-video-${{ github.run_id }}
           path: EurVeu-Engine/eurveu_farland_output.mp4
           retention-days: 1
