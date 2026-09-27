@@ -1,21 +1,34 @@
 {
-    "generation": 1,
-    "curiosity_index": 1.0,
-    "processed_files_hash": [
-        6117526333531661151,
-        1255919030354849504,
-        -9011352841770699185,
-        -6262824825817036542,
-        -89004623921451318,
-        2345916549005366233,
-        5679546697140045587,
-        2158734985584044543
+    "engine_name": "EurVeu Neural Engine",
+    "version": "4.0.0-Ultimate",
+    "evolution_cycle": 1,
+    "total_perceptions": 1,
+    "memory_log": [
+        {
+            "cycle": 1,
+            "input_file": "sensory_init.jpg",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sensory_metrics": {
+                "brightness": 0.5,
+                "warmth": 0.12,
+                "contrast": 0.35,
+                "entropy": 3.84,
+                "sharpness": 0.22
+            },
+            "latent_coordinate_sample": [
+                0.1245,
+                -0.8921,
+                0.4312,
+                0.0911,
+                -0.3412,
+                0.7812,
+                -0.1192,
+                0.5401
+            ],
+            "timestamp": 1700000000.0
+        }
     ],
-    "visual_entropy_history": [],
-    "learned_vectors": {
-        "r_freq": 16.0,
-        "g_freq": 20.4,
-        "b_freq": 33.0,
-        "audio_density": 20000
-    }
+    "spatial_trajectories": [],
+    "created_timestamp": "2026-09-27 10:00:00",
+    "last_updated": "2026-09-27 10:00:00"
 }
